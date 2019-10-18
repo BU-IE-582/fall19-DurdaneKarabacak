@@ -81,6 +81,13 @@ lines(0:6,AwayCOUNTS)
 
 
 
+##COMMENTS##
+As can be seen above graphs, histograms of Home Goals and Away Goals fits very well with poisson distribution with parameters which were founded using mean values as wanted in HW description.  
+
+
+
+
+
 ```{r pressure, echo=FALSE}
 
 ```

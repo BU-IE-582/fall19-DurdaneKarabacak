@@ -63,11 +63,6 @@ x[,DrawNormalizedProb:=((x$probDraw)/(x$probDraw+x$probHome+ x$probAway))]
 
 plot(x$HomeNormalizedProb-x$AwayNormalizedProb,x$DrawNormalizedProb,xlim = c(-1,1),ylim = c(0,1),main = 'Betolimp', xlab = 'HomeProb-AwayProb',ylab='DrawProb')
 
-#setkey(EPLmatches,match_id)
-#setkey(x,match_id)
-
-#test<-merge(x,EPLmatches)
-#length(test$match_id)
 test<-x
 test[,GoalsDifference:=test$match_hometeam_score-test$match_awayteam_score]
 
@@ -507,6 +502,8 @@ R6S<-length(Draw6S[bias>=0]$match_id)
 plot(c(R1S,R2S,R3S,R4S,R5S,R6S),col='red',type='l',main = 'Number of Matches where bias is positive for Expekt')
 
 Compare<-c(R1+R2+R3+R4+R5+R6,R1Y+R2Y+R3Y+R4Y+R5Y+R6Y,R1E+R2E+R3E+R4E+R5E+R6E,R1S+R2S+R3S+R4S+R5S+R6S)
+Compare
+
 plot(Compare,type = 'l',col='red')
 
 v<-c(R1Y,R2Y,R3Y,R4Y,R5Y,R6Y)
@@ -517,11 +514,31 @@ lines(v,col='pink',type='l')
 lines(y,col='yellow',type='l')
 lines(z,col='blue',type='l')
 
+B<-c((R1/length(Draw1$match_id)),(R2/length(Draw2$match_id)),(R3/length(Draw3$match_id)),(R4/length(Draw4$match_id)),(R5/length(Draw5$match_id)),(R6/length(Draw6$match_id)))
+Y<-c((R1Y/length(Draw1Y$match_id)),(R2Y/length(Draw2Y$match_id)),(R3Y/length(Draw3Y$match_id)),(R4Y/length(Draw4Y$match_id)),(R5Y/length(Draw5Y$match_id)),(R6Y/length(Draw6Y$match_id)))
+E<-c((R1E/length(Draw1E$match_id)),(R2E/length(Draw2E$match_id)),(R3E/length(Draw3E$match_id)),(R4E/length(Draw4E$match_id)),(R5E/length(Draw5E$match_id)),(R6E/length(Draw6E$match_id)))
+S<-c((R1S/length(Draw1S$match_id)),(R2S/length(Draw2S$match_id)),(R3S/length(Draw3$match_id)),(R4S/length(Draw4$match_id)),(R5S/length(Draw5S$match_id)),(R6S/length(Draw6$match_id)))
 
+plot(B,col='red',type='l',ylim = c(0,1),main = "Rates comparisons of bookmakers in terms of betting",xlab = "intervals",ylab = "number of matches with positive bias")
+lines(Y,col='pink',type='l')
+lines(E,type='l')
+lines(S,col='blue',type='l')
 
 ```
 
-## Including Plots
+
+##Comments
+
+Initially i started with uploading data files into R and for this task i used matches, odds data which were given to us. By making changes into this data table i was intended to
+reach solutions of the questions.For each betting company, i seperated data and perform some analysis on data for each betting company within intervals. The different lines in the last graph shows number of games at which a better potentially make money in the long run because their fractions are greater than proposed draw probabilities
+
+>> Second graph from the last showed that there is a tendency toward 3+4+5 th intervals which are (from -0.3 to 0.6 in total) for all bookmakers therefore it may be beneficial to recommend odds 
+
+>>last graph reveals the rates of[(bias >0 games)/(matches results in draw in that interval) ]for each intervals and each bookmaker. By making interpretation, Betolimp made the best recommends within the other bookmakers
+
+>>One drawback is Sekabet includes less data compared with others. 
+
+
 
 
 ```{r pressure, echo=FALSE}
