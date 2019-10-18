@@ -1,0 +1,88 @@
+---
+title: "HW1-PART 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r }
+
+#TASK 1
+
+require(data.table)
+require(datasets)
+require(plyr)
+
+matches=read.csv("C:/Users/durda/Desktop/IE 582 HW/Datalar/matches.csv")
+EPLmatches=matches[matches$league_id=='148',]
+
+#Q1_1
+
+hist(EPLmatches$match_hometeam_score,freq = TRUE,labels = TRUE,xlab = "Home Goals Scores",ylab="Counts ",breaks = 25,right = FALSE,main = 'Home Goals',col = 'purple', ylim=c(0,220) )
+hist(EPLmatches$match_awayteam_score,freq = TRUE,labels = TRUE,xlab = "Away Goals Scores",ylab="Counts ",breaks = 10,right = FALSE,main = 'Away Goals', col = 'grey', ylim=c(0,220) )
+hist(EPLmatches$match_hometeam_score-EPLmatches$match_awayteam_score,freq = TRUE,labels = TRUE, ylim=c(0,150) ,xlab = "Home goals – Away Goals",ylab="Counts ",breaks = 20,right = FALSE,main='Home-Away Goals',col = 'red')
+
+#Q1_2
+
+#FOR HOME TEAM
+homemean=mean(EPLmatches$match_hometeam_score)
+length(EPLmatches$match_hometeam_score)
+#618
+a<-dpois(0,1.601942)
+b<-dpois(1,1.601942)
+c<-dpois(2,1.601942)
+d<-dpois(3,1.601942)
+e<-dpois(4,1.601942)
+f<-dpois(5,1.601942)
+g<-dpois(6,1.601942)
+h<-dpois(7,1.601942)
+j<-dpois(8,1.601942)
+
+Probabilities<-c(a,b,c,d,e,f,g,h,j)
+COUNTS<-Probabilities*618
+COUNTS
+
+plot(0:8,Probabilities,type = 'l')
+hist(EPLmatches$match_hometeam_score,freq = TRUE,labels = TRUE,main="Poisson & Histogram Comparison for Home",xlab = "Home Goals Scores",ylab="Counts ",breaks = 25,right = FALSE,col = 'yellow', ylim=c(0,210) )
+lines(0:8,COUNTS)
+
+#FOR AWAY Team
+awaymean=mean(EPLmatches$match_awayteam_score)
+length(EPLmatches$match_awayteam_score)
+
+a2<-dpois(0,1.228155)
+b2<-dpois(1,1.228155)
+c2<-dpois(2,1.228155)
+d2<-dpois(3,1.228155)
+e2<-dpois(4,1.228155)
+f2<-dpois(5,1.228155)
+g2<-dpois(6,1.228155)
+
+AwayProb<-c(a,b,c,d,e,f,g)
+AwayCOUNTS<-AwayProb*618
+COUNTS
+
+hist(EPLmatches$match_awayteam_score,freq = TRUE,labels = TRUE,main="Poisson & Histogram Comparison for Away ",xlab = "Away Goals Scores",ylab="Counts ",breaks = 10,right = FALSE,col = 'pink', ylim=c(0,220) )
+lines(0:6,AwayCOUNTS)
+
+
+
+```
+
+
+
+
+
+```{r pressure, echo=FALSE}
+
+```
+
+
