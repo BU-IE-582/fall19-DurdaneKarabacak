@@ -268,7 +268,7 @@ Draw5Y[,bias:=fraction5Y-DrawNormalizedProb]
 R5Y<-length(Draw5Y[bias>=0]$match_id)
 
 #Range 6
-Range6Y<-test[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9]
+Range6Y<-testY[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9]
 Draw6Y<-Range6Y[GoalsDifference==0]
 
 fraction6Y<- length(Draw6Y$match_id)/length(Range6Y$match_id)
@@ -379,7 +379,7 @@ Draw5E[,bias:=fraction5E-DrawNormalizedProb]
 R5E<-length(Draw5E[bias>=0]$match_id)
 
 #Range 6
-Range6E<-test[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9,]
+Range6E<-testE[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9,]
 Draw6E<-Range6E[GoalsDifference==0]
 
 fraction6E<- length(Draw6E$match_id)/length(Range6E$match_id)
@@ -488,7 +488,7 @@ Draw5S[,bias:=fraction5S-DrawNormalizedProb]
 R5S<-length(Draw5S[bias>=0]$match_id)
 
 #Range 6
-Range6S<-test[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9,]
+Range6S<-testS[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9,]
 Draw6S<-Range6S[GoalsDifference==0]
 
 fraction6S<- length(Draw6S$match_id)/length(Range6S$match_id)
@@ -508,8 +508,23 @@ lines(v,col='pink',type='l')
 lines(y,col='yellow',type='l')
 lines(z,col='blue',type='l')
 
+B<-c((R1/length(Draw1$match_id)),(R2/length(Draw2$match_id)),(R3/length(Draw3$match_id)),(R4/length(Draw4$match_id)),(R5/length(Draw5$match_id)),(R6/length(Draw6$match_id)))
+Y<-c((R1Y/length(Draw1Y$match_id)),(R2Y/length(Draw2Y$match_id)),(R3Y/length(Draw3Y$match_id)),(R4Y/length(Draw4Y$match_id)),(R5Y/length(Draw5Y$match_id)),(R6Y/length(Draw6Y$match_id)))
+E<-c((R1E/length(Draw1E$match_id)),(R2E/length(Draw2E$match_id)),(R3E/length(Draw3E$match_id)),(R4E/length(Draw4E$match_id)),(R5E/length(Draw5E$match_id)),(R6E/length(Draw6E$match_id)))
+S<-c((R1S/length(Draw1S$match_id)),(R2S/length(Draw2S$match_id)),(R3S/length(Draw3$match_id)),(R4S/length(Draw4$match_id)),(R5S/length(Draw5S$match_id)),(R6S/length(Draw6S$match_id)))
+
+plot(B,col='red',type='l',ylim = c(0,1),main = "Rates comparisons of bookmakers in terms of betting",xlab = "intervals",ylab = "number of matches with positive bias")
+lines(Y,col='pink',type='l')
+lines(E,type='l')
+lines(S,col='blue',type='l')
+
 
 ```
+
+##Comments
+
+>> By comparing last graphs of Task 2 and Task 3, there is some loss in number of games. This affected our coise of the best company and the intervals which gives better results. Since Betolimp gave 1/1 perfect recommendations for 3 intervals, i choose again Betolimp but in here from intervals 2 to 5 is better for this option
+
 
 
 
