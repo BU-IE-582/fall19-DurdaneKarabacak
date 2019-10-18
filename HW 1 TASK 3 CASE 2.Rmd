@@ -1,0 +1,524 @@
+---
+title: "HW 1 TASK 3 CASE 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+#TASK 3 - CASE 2
+
+library(data.table)    
+require(data.table)
+library(datasets)      
+require(datasets)
+library(plyr)         
+require(plyr)
+
+
+matches=read.csv("C:/Users/durda/Desktop/IE 582 HW/Datalar/matches.csv")
+bookings<-read.csv("C:/Users/durda/Desktop/IE 582 HW/Datalar/booking.csv")
+bookings<-data.table(bookings)
+
+#Case 2
+bookings$time<-as.numeric(bookings$time)
+
+EPLmatches=matches[matches$league_id=='148',]
+EPLmatches<-data.table(EPLmatches)
+setkey(EPLmatches,match_id)
+setkey(bookings,match_id)
+EPLmatches<-merge(EPLmatches,bookings)
+Case2<-EPLmatches[time<=40 & card=='red card']
+EPLmatches<- EPLmatches[!((time<=40) & (card)=='red card'),]
+
+
+EPLmatches<-EPLmatches[,-c('time','home_fault','card','away_fault')]
+
+EPLmatches<-EPLmatches[!duplicated(EPLmatches)]
+EPLmatches<-EPLmatches[,c(1,4,9,10)]
+
+
+odds=read.csv("C:/Users/durda/Desktop/IE 582 HW/Datalar/bets.csv")
+odds[,"1/Odds"]<- (1/odds$value)
+
+
+odds<- data.table(odds)
+setkey(EPLmatches,match_id)
+setkey(odds,match_id)
+odds<-merge(odds,EPLmatches)
+
+
+
+BetOlimp=odds[odds$odd_bookmakers=='BetOlimp',]
+Youwin=odds[odds$odd_bookmakers=="youwin",]
+Expekt=odds[odds$odd_bookmakers=="Expekt",]
+Sekabet=odds[odds$odd_bookmakers=="Sekabet",]
+
+
+
+
+#For Betolimp
+
+B_Drawodds=data.table(BetOlimp[BetOlimp$variable=="odd_x",])
+B_Homeodds=data.table(BetOlimp[BetOlimp$variable=="odd_1",])
+B_Awayodds=data.table(BetOlimp[BetOlimp$variable=="odd_2",])
+
+
+setkey(B_Drawodds,match_id)
+setkey(B_Homeodds,match_id)
+setkey(B_Awayodds,match_id)
+
+x<-merge(B_Homeodds,B_Awayodds)
+x<-merge(x,B_Drawodds)
+x<-x[,c(1,3,4,5,6,12,13,14,20,21,22,24,25)]
+setnames(x, old = c('value.x','1/Odds.x','value.y','1/Odds.y','value','1/Odds'), new = c('odd_1','probHome','odd_2','probAway','odd_x','probDraw'))
+
+x[,HomeNormalizedProb:=((x$probHome)/(x$probDraw+x$probHome+ x$probAway))]
+x[,AwayNormalizedProb:=((x$probAway)/(x$probDraw+x$probHome+ x$probAway))]
+x[,DrawNormalizedProb:=((x$probDraw)/(x$probDraw+x$probHome+ x$probAway))]
+
+
+plot(x$HomeNormalizedProb-x$AwayNormalizedProb,x$DrawNormalizedProb,xlim = c(-1,1),ylim = c(0,1),main = 'Betolimp', xlab = 'HomeProb-AwayProb',ylab='DrawProb')
+abline(v=c(-0.9,-0.6,-0.3,0,0.3,0.6,0.9))
+
+test<-x
+test[,GoalsDifference:=test$match_hometeam_score-test$match_awayteam_score]
+
+#Intervals
+#Range1
+Range1<-test[(HomeNormalizedProb-AwayNormalizedProb)>=-0.9 & (HomeNormalizedProb-AwayNormalizedProb)<=-0.6,]
+Range1
+
+Draw1<-Range1[GoalsDifference==0]
+
+
+fraction<- length(Draw1$match_id)/length(Range1$match_id)
+fraction
+
+Draw1[,bias:=fraction-DrawNormalizedProb]
+R1<-length(Draw1[bias>=0]$match_id)
+
+
+#Range 2
+Range2<-test[(HomeNormalizedProb-AwayNormalizedProb)>=-0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=-0.3,]
+
+
+Draw2<-Range2[GoalsDifference==0]
+
+
+fraction2<- length(Draw2$match_id)/length(Range2$match_id)
+fraction2
+
+Draw2[,bias:=fraction2-DrawNormalizedProb]
+R2<-length(Draw2[bias>=0]$match_id)
+
+
+#Range 3
+Range3<-test[(HomeNormalizedProb-AwayNormalizedProb)>=-0.3 & (HomeNormalizedProb-AwayNormalizedProb)<=0,]
+
+
+Draw3<-Range3[GoalsDifference==0]
+
+
+fraction3<- length(Draw3$match_id)/length(Range2)
+fraction3
+
+Draw3[,bias:=fraction3-DrawNormalizedProb]
+R3<-length(Draw3[bias>=0]$match_id)
+
+#Range 4
+Range4<-test[(HomeNormalizedProb-AwayNormalizedProb)>=0 & (HomeNormalizedProb-AwayNormalizedProb)<=0.3,]
+
+
+Draw4<-Range4[GoalsDifference==0]
+
+
+fraction4<- length(Draw4$match_id)/length(Range4$match_id)
+fraction4
+
+Draw4[,bias:=fraction4-DrawNormalizedProb]
+R4<-length(Draw4[bias>=0]$match_id)
+
+
+#Range 5
+Range5<-test[(HomeNormalizedProb-AwayNormalizedProb)>=0.3 & (HomeNormalizedProb-AwayNormalizedProb)<=0.6,]
+
+
+Draw5<-Range5[GoalsDifference==0]
+
+
+fraction5<- length(Draw5$match_id)/length(Range5)
+fraction5
+
+Draw5[,bias:=fraction5-DrawNormalizedProb]
+R5<-length(Draw5[bias>=0]$match_id)
+
+#Range 6
+Range6<-test[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9,]
+Draw6<-Range6[GoalsDifference==0]
+
+fraction6<- length(Draw6$match_id)/length(Range6)
+fraction6
+
+Draw6[,bias:=fraction6-DrawNormalizedProb]
+R6<-length(Draw6[bias>=0]$match_id)
+
+plot(c(R1,R2,R3,R4,R5,R6),col='red',type='l',main = 'Number of Matches where bias is positive for BetOlimp')
+
+##########################################################
+
+#For Youwin
+
+Y_Drawodds=data.table(Youwin[Youwin$variable=="odd_x",])
+Y_Homeodds=data.table(Youwin[Youwin$variable=="odd_1",])
+Y_Awayodds=data.table(Youwin[Youwin$variable=="odd_2",])
+
+
+setkey(Y_Drawodds,match_id)
+setkey(Y_Homeodds,match_id)
+setkey(Y_Awayodds,match_id)
+
+xY<-merge(Y_Homeodds,Y_Awayodds)
+xY<-merge(xY,Y_Drawodds)
+xY<-xY[,c(1,3,4,5,6,12,13,14,20,21,22,24,25)]
+
+
+
+setnames(xY, old = c('value.x','1/Odds.x','value.y','1/Odds.y','value','1/Odds'), new = c('odd_1','probHome','odd_2','probAway','odd_x','probDraw'))
+
+xY[,HomeNormalizedProb:=((xY$probHome)/(xY$probDraw+xY$probHome+ xY$probAway))]
+xY[,AwayNormalizedProb:=((xY$probAway)/(xY$probDraw+xY$probHome+ xY$probAway))]
+xY[,DrawNormalizedProb:=((xY$probDraw)/(xY$probDraw+xY$probHome+ xY$probAway))]
+
+
+plot((xY$HomeNormalizedProb-xY$AwayNormalizedProb),xY$DrawNormalizedProb,xlim = c(-1,1),ylim = c(0,1),main = 'Youwin', xlab = 'HomeProb-AwayProb',ylab='DrawProb',col='red')
+abline(v=c(-0.9,-0.6,-0.3,0,0.3,0.6,0.9))
+
+testY<-xY
+testY[,GoalsDifference:=match_hometeam_score-match_awayteam_score]
+
+#Intervals
+#Range1
+Range1Y<-testY[(HomeNormalizedProb-AwayNormalizedProb)>=-0.9 & (HomeNormalizedProb-AwayNormalizedProb)<=-0.6]
+Range1Y
+
+Draw1Y<-Range1Y[GoalsDifference==0]
+
+
+fractionY<- length(Draw1Y$match_id)/length(Range1Y$match_id)
+fractionY
+
+Draw1Y[,bias:=fractionY-DrawNormalizedProb]
+R1Y<-length(Draw1Y[bias>=0]$match_id)
+
+
+#Range 2
+Range2Y<-testY[(HomeNormalizedProb-AwayNormalizedProb)>=-0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=-0.3]
+
+
+Draw2Y<-Range2Y[GoalsDifference==0]
+
+
+fraction2Y<- length(Draw2Y$match_id)/length(Range2Y$match_id)
+fraction2Y
+
+Draw2Y[,bias:=fraction2Y-DrawNormalizedProb]
+R2Y<-length(Draw2Y[bias>=0]$match_id)
+
+
+#Range 3
+Range3Y<-testY[(HomeNormalizedProb-AwayNormalizedProb)>=-0.3 & (HomeNormalizedProb-AwayNormalizedProb)<=0]
+
+
+Draw3Y<-Range3Y[GoalsDifference==0]
+
+
+fraction3Y<- length(Draw3Y$match_id)/length(Range3Y$match_id)
+fraction3Y
+
+Draw3Y[,bias:=fraction3Y-DrawNormalizedProb]
+R3Y<-length(Draw3Y[bias>=0]$match_id)
+
+#Range 4
+Range4Y<-testY[(HomeNormalizedProb-AwayNormalizedProb)>=0 & (HomeNormalizedProb-AwayNormalizedProb)<=0.3]
+
+
+Draw4Y<-Range4Y[GoalsDifference==0]
+
+
+fraction4Y<- length(Draw4Y$match_id)/length(Range4Y$match_id)
+fraction4Y
+
+Draw4Y[,bias:=fraction4Y-DrawNormalizedProb]
+R4Y<-length(Draw4Y[bias>=0]$match_id)
+
+
+#Range 5
+Range5Y<-testY[(HomeNormalizedProb-AwayNormalizedProb)>=0.3 & (HomeNormalizedProb-AwayNormalizedProb)<=0.6]
+
+
+Draw5Y<-Range5Y[GoalsDifference==0]
+
+
+fraction5Y<- length(Draw5Y$match_id)/length(Range5Y$match_id)
+fraction5Y
+
+Draw5Y[,bias:=fraction5Y-DrawNormalizedProb]
+R5Y<-length(Draw5Y[bias>=0]$match_id)
+
+#Range 6
+Range6Y<-test[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9]
+Draw6Y<-Range6Y[GoalsDifference==0]
+
+fraction6Y<- length(Draw6Y$match_id)/length(Range6Y$match_id)
+fraction6Y
+
+Draw6Y[,bias:=fraction6Y-DrawNormalizedProb]
+R6Y<-length(Draw6Y[bias>=0]$match_id)
+
+plot(c(R1Y,R2Y,R3Y,R4Y,R5Y,R6Y),col='red',type='l',main = 'Number of Matches where bias is positive for Youwin')
+
+###########################################################
+
+#FOR EXPEKT
+
+E_Drawodds=data.table(Expekt[Expekt$variable=="odd_x",])
+E_Homeodds=data.table(Expekt[Expekt$variable=="odd_1",])
+E_Awayodds=data.table(Expekt[Expekt$variable=="odd_2",])
+
+
+setkey(E_Drawodds,match_id)
+setkey(E_Homeodds,match_id)
+setkey(E_Awayodds,match_id)
+
+xE<-merge(E_Homeodds,E_Awayodds)
+xE<-merge(xE,E_Drawodds)
+xE<-xE[,c(1,3,4,5,6,12,13,14,20,21,22,24,25)]
+
+setnames(xE, old = c('value.x','1/Odds.x','value.y','1/Odds.y','value','1/Odds'), new = c('odd_1','probHome','odd_2','probAway','odd_x','probDraw'))
+
+xE[,HomeNormalizedProb:=((xE$probHome)/(xE$probDraw+xE$probHome+ xE$probAway))]
+xE[,AwayNormalizedProb:=((xE$probAway)/(xE$probDraw+xE$probHome+ xE$probAway))]
+xE[,DrawNormalizedProb:=((xE$probDraw)/(xE$probDraw+xE$probHome+ xE$probAway))]
+
+plot(xE$HomeNormalizedProb-xE$AwayNormalizedProb,xE$DrawNormalizedProb,xlim = c(-1,1),ylim = c(0,1),main = 'Expekt', xlab = 'HomeProb-AwayProb',ylab='DrawProb',col='blue')
+abline(v=c(-0.9,-0.6,-0.3,0,0.3,0.6,0.9))
+
+testE<-xE
+testE[,GoalsDifference:=testE$match_hometeam_score-testE$match_awayteam_score]
+
+
+#Intervals
+#Range1
+Range1E<-testE[(HomeNormalizedProb-AwayNormalizedProb)>=-0.9 & (HomeNormalizedProb-AwayNormalizedProb)<=-0.6,]
+Range1E
+
+Draw1E<-Range1E[GoalsDifference==0]
+
+
+fractionE<- length(Draw1E$match_id)/length(Range1E$match_id)
+fraction
+
+Draw1E[,bias:=fractionE-DrawNormalizedProb]
+R1E<-length(Draw1E[bias>=0]$match_id)
+
+
+#Range 2
+Range2E<-testE[(HomeNormalizedProb-AwayNormalizedProb)>=-0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=-0.3,]
+
+
+Draw2E<-Range2E[GoalsDifference==0]
+
+
+fraction2E<- length(Draw2E$match_id)/length(Range2E$match_id)
+fraction2
+
+Draw2E[,bias:=fraction2E-DrawNormalizedProb]
+R2E<-length(Draw2E[bias>=0]$match_id)
+
+
+#Range 3
+Range3E<-testE[(HomeNormalizedProb-AwayNormalizedProb)>=-0.3 & (HomeNormalizedProb-AwayNormalizedProb)<=0,]
+
+
+Draw3E<-Range3E[GoalsDifference==0]
+
+
+fraction3E<- length(Draw3E$match_id)/length(Range3E$match_id)
+fraction3E
+
+Draw3E[,bias:=fraction3E-DrawNormalizedProb]
+R3E<-length(Draw3E[bias>=0]$match_id)
+
+#Range 4
+Range4E<-testE[(HomeNormalizedProb-AwayNormalizedProb)>=0 & (HomeNormalizedProb-AwayNormalizedProb)<=0.3]
+
+
+Draw4E<-Range4E[GoalsDifference==0]
+
+
+fraction4E<- length(Draw4E$match_id)/length(Range4E$match_id)
+fraction4E
+
+Draw4E[,bias:=fraction4E-DrawNormalizedProb]
+R4E<-length(Draw4E[bias>=0]$match_id)
+
+
+#Range 5
+Range5E<-testE[(HomeNormalizedProb-AwayNormalizedProb)>=0.3 & (HomeNormalizedProb-AwayNormalizedProb)<=0.6,]
+
+
+Draw5E<-Range5E[GoalsDifference==0]
+
+
+fraction5E<- length(Draw5E$match_id)/length(Range5E$match_id)
+fraction5E
+
+Draw5E[,bias:=fraction5E-DrawNormalizedProb]
+R5E<-length(Draw5E[bias>=0]$match_id)
+
+#Range 6
+Range6E<-test[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9,]
+Draw6E<-Range6E[GoalsDifference==0]
+
+fraction6E<- length(Draw6E$match_id)/length(Range6E$match_id)
+fraction6E
+
+Draw6E[,bias:=fraction6E-DrawNormalizedProb]
+R6E<-length(Draw6E[bias>=0]$match_id)
+
+plot(c(R1E,R2E,R3E,R4E,R5E,R6E),col='red',type='l',main = 'Number of Matches where bias is positive for Expekt')
+
+##########################################################################
+
+# FOR SEKABET
+
+S_Drawodds=data.table(Sekabet[Sekabet$variable=="odd_x",])
+S_Homeodds=data.table(Sekabet[Sekabet$variable=="odd_1",])
+S_Awayodds=data.table(Sekabet[Sekabet$variable=="odd_2",])
+
+
+setkey(S_Drawodds,match_id)
+setkey(S_Homeodds,match_id)
+setkey(S_Awayodds,match_id)
+
+xS<-merge(S_Homeodds,S_Awayodds)
+xS<-merge(xS,S_Drawodds)
+xS<-xS[,c(1,3,4,5,6,12,13,14,20,21,22,24,25)]
+
+setnames(xS, old = c('value.x','1/Odds.x','value.y','1/Odds.y','value','1/Odds'), new = c('odd_1','probHome','odd_2','probAway','odd_x','probDraw'))
+
+xS[,HomeNormalizedProb:=((xS$probHome)/(xS$probDraw+xS$probHome+ xS$probAway))]
+xS[,AwayNormalizedProb:=((xS$probAway)/(xS$probDraw+xS$probHome+ xS$probAway))]
+xS[,DrawNormalizedProb:=((xS$probDraw)/(xS$probDraw+xS$probHome+ xS$probAway))]
+
+plot(xS$HomeNormalizedProb-xS$AwayNormalizedProb,xS$DrawNormalizedProb,xlim = c(-1,1),ylim = c(0,1),main = 'Sekabet', xlab = 'HomeProb-AwayProb',ylab='DrawProb',col='green')
+
+testS<-xS
+testS[,GoalsDifference:=testS$match_hometeam_score-testS$match_awayteam_score]
+
+max(xS$HomeNormalizedProb-xS$AwayNormalizedProb)
+min(xS$HomeNormalizedProb-xS$AwayNormalizedProb)
+abline(v=c(-0.9,-0.6,-0.3,0,0.3,0.6,0.9))
+
+
+#Intervals
+#Range1
+Range1S<-testS[(HomeNormalizedProb-AwayNormalizedProb)>=-0.9 & (HomeNormalizedProb-AwayNormalizedProb)<=-0.6,]
+Range1S
+
+Draw1S<-Range1S[GoalsDifference==0]
+
+
+fractionS<- length(Draw1S$match_id)/length(Range1S$match_id)
+
+Draw1S[,bias:=fractionS-DrawNormalizedProb]
+R1S<-length(Draw1S[bias>=0]$match_id)
+
+
+#Range 2
+Range2S<-testS[(HomeNormalizedProb-AwayNormalizedProb)>=-0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=-0.3,]
+
+
+Draw2S<-Range2S[GoalsDifference==0]
+
+
+fraction2S<- length(Draw2S$match_id)/length(Range2S$match_id)
+fraction2S
+
+Draw2S[,bias:=fraction2S-DrawNormalizedProb]
+R2S<-length(Draw2S[bias>=0]$match_id)
+
+
+#Range 3
+Range3S<-testS[(HomeNormalizedProb-AwayNormalizedProb)>=-0.3 & (HomeNormalizedProb-AwayNormalizedProb)<=0,]
+
+
+Draw3S<-Range3S[GoalsDifference==0]
+
+
+fraction3S<- length(Draw3S$match_id)/length(Range3S$match_id)
+fraction3S
+
+Draw3S[,bias:=fraction3S-DrawNormalizedProb]
+R3S<-length(Draw3S[bias>=0]$match_id)
+
+#Range 4
+Range4S<-testS[(HomeNormalizedProb-AwayNormalizedProb)>=0 & (HomeNormalizedProb-AwayNormalizedProb)<=0.3,]
+
+
+Draw4S<-Range4S[GoalsDifference==0]
+
+
+fraction4S<- length(Draw4S$match_id)/length(Range4S$match_id)
+fraction4S
+
+Draw4S[,bias:=fraction4S-DrawNormalizedProb]
+R4S<-length(Draw4S[bias>=0]$match_id)
+
+
+#Range 5
+Range5S<-testS[(HomeNormalizedProb-AwayNormalizedProb)>=0.3 & (HomeNormalizedProb-AwayNormalizedProb)<=0.6,]
+
+
+Draw5S<-Range5S[GoalsDifference==0]
+
+
+fraction5S<- length(Draw5S$match_id)/length(Range5S$match_id)
+fraction5S
+
+Draw5S[,bias:=fraction5S-DrawNormalizedProb]
+R5S<-length(Draw5S[bias>=0]$match_id)
+
+#Range 6
+Range6S<-test[(HomeNormalizedProb-AwayNormalizedProb)>=0.6 & (HomeNormalizedProb-AwayNormalizedProb)<=0.9,]
+Draw6S<-Range6S[GoalsDifference==0]
+
+fraction6S<- length(Draw6S$match_id)/length(Range6S$match_id)
+fraction6S
+
+Draw6S[,bias:=fraction6S-DrawNormalizedProb]
+R6S<-length(Draw6S[bias>=0]$match_id)
+
+plot(c(R1S,R2S,R3S,R4S,R5S,R6S),col='red',type='l',main = 'Number of Matches where bias is positive for Sekabet')
+
+
+plot(c(R1,R2,R3,R4,R5,R6),col='red',type='l',ylim = c(0,30),main = "compare bookmakers in terms of betting",xlab = "intervals",ylab = "number of matches with positive bias")
+v<-c(R1Y,R2Y,R3Y,R4Y,R5Y,R6Y)
+y<-c(R1E,R2E,R3E,R4E,R5E,R6E)
+z<-c(R1S,R2S,R3S,R4S,R5S,R6S)
+lines(v,col='pink',type='l')
+lines(y,col='yellow',type='l')
+lines(z,col='blue',type='l')
+
+
+```
+
+
+```{r pressure, echo=FALSE}
+
+```
+
