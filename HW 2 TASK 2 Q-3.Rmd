@@ -1,0 +1,122 @@
+---
+title: "HW 2 TASK 3 Q3"
+author: "Dürdane Karabacak"
+date: "07 11 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+  
+```{r cars}
+
+
+#par(fig=c(0,1,1,1), new=TRUE)
+gray_noise<-noiseimg[,,1]
+if(exists("rasterImage")){
+  plot(1:2, type='n', xlab = "", ylab = "",main = "Image with noise")
+  rasterImage(gray_noise,1,1,2,2,interpolate = FALSE)
+}
+
+i=array(1:256)
+m=array(1:256)
+j=array(1:3)
+k=array((-12):12)
+l=array((-12):12)
+patch<- array(dim = c(25,25))
+
+instances<-array()
+for (i in seq(13,244, by=5) ){
+  for (m in seq(13,244,by=5) ){
+    for (k in (-12):12) {
+      for (l in (-12):12) {
+        patch[k+13,l+13]=gray_noise[i+k,m+l]
+      }
+    }
+    instances<- rbind(instances,as.vector(patch))
+    
+  }                      
+}
+
+"
+instances<-matrix(nrow =53824 )
+for (i in 13:244 ) {
+  for (m in 13:244) {
+    for (z in 1:53824) {
+      for (k in (-12):12) {
+        for(l in (-12):12) {
+          
+          instances[z,]=gray_img[i+k,m+l]}
+        
+      }
+    }
+  }                      
+}
+"
+instances<-instances[-1,]
+#A
+plot(instances[,1:5],col=2,pch=".",cex=7)
+summary(instances)
+cor_mat<-cor(instances)
+View(cor_mat)
+
+pca<-princomp(cor_mat,cor = T)
+summary(pca,loadings=T)
+plot(pca,main = "",col="yellow")
+title(main = "Principal Components Importance")
+
+loadings<- unclass(pca$loadings[,1:3])
+loadings
+
+
+scores<- pca$scores
+plot(scores[,1])
+pca$scores[,1]
+pca$scores[1,]
+
+
+#B
+grayimg_new<-gray_noise
+max<-max(scores[,1])
+firstscores<-(scores[,1]/max)
+firstscores<-abs(firstscores)
+
+
+f<-1  
+
+for (i in 13:244){
+  for (m in 13:244 ){
+    for (k in (-12):12) {
+      for (l in (-12):12) {
+     
+          grayimg_new[i+k,m+l]=firstscores[f]
+          
+        
+        f<-(f+1)
+        
+      }
+    }
+    f<-1
+  }                      
+}
+
+View(grayimg_new)
+if(exists("rasterImage")){
+  plot(1:2, type='n', xlab = "", ylab = "",main = "Image with noise")
+  rasterImage(grayimg_new,1,1,2,2,interpolate = FALSE)
+}
+
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
