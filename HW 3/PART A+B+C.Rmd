@@ -1,0 +1,151 @@
+---
+title: "IE582_HW3"
+author: "Dürdane Karabacak"
+date: "29 11 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+PART A-PART B and PART C
+
+```{r cars}
+
+library(tidyverse)
+library(data.table)stringsAsFactors=FALSE
+library(glmnet)
+epias_dataset<-read.csv("C:/Users/DÜRDANE KARABACAK/Desktop/IE 582 HW/HW 3/Epiaşdata.csv") %>% as.data.table()
+colnames(epias_dataset)<-c("Date", "Time", "Electricity_usage")
+
+Pos_type_dates_hours<-as.POSIXct(paste(epias_dataset$Date, epias_dataset$Time), format="%d.%m.%Y %H:%M")
+
+usage<-epias_dataset$Electricity_usage %>% as.character
+usage<-gsub(".", "",usage,fixed = TRUE)
+usage<-gsub(",", ".",usage,fixed = TRUE) %>%as.numeric
+
+new_epiasdata<-data.table(Date_Hours=Pos_type_dates_hours, Electricity_usage=usage)
+str(new_epiasdata)
+summary(new_epiasdata)
+
+
+#PART A 
+#Filetering Time Series Data
+test_data_Epias<- new_epiasdata %>%
+filter(Date_Hours>="2019-11-01")
+
+test_data_Epias$naive48<-new_epiasdata %>%
+filter(Date_Hours %in% unique(test_data_Epias$Date_Hours-3600*48)) %>%
+  select(Electricity_usage)
+
+test_data_Epias$naive168<-new_epiasdata %>%
+filter(Date_Hours %in% unique(test_data_Epias$Date_Hours-3600*168)) %>%
+select(Electricity_usage)
+
+
+test_data_Epias$MAPE_48<-abs(test_data_Epias$naive48-test_data_Epias$Electricity_usage)/test_data_Epias$Electricity_usage
+test_data_Epias$MAPE_168<-abs(test_data_Epias$naive168-test_data_Epias$Electricity_usage)/test_data_Epias$Electricity_usage
+
+colnames(test_data_Epias)<-c("Date_and_time", "Electricity_usage", "Naive Forecast-2Days","Naive Forecast_7_Days","MAPE(48)","MAPE(168)")
+head(test_data_Epias)
+
+
+#PART B
+#Forecast for 48 
+
+f48<-new_epiasdata %>%
+  filter(Date_Hours<"2019-11-01") %>%
+  mutate(Date_Hours=Date_Hours+(3600*48))
+colnames(f48)<-c("Date_Hours","Lag_48")
+
+#Forecast for 168
+
+f168<-new_epiasdata %>% filter(Date_Hours<"2019-11-01") %>% mutate(Date_Hours=Date_Hours+(3600*168))
+colnames(f168)<-c("Date_Hours","Lag_168")
+
+# Constructing Linear Regression 
+
+LinRegMod<-new_epiasdata%>% left_join(f48,by="Date_Hours") %>%left_join(f168,by="Date_Hours")
+
+
+#Train Linear Regression model
+
+LinRegTrain <- LinRegMod%>%
+  filter(Date_Hours<"2019-11-01") %>%
+  select('Lag_48','Lag_168',Electricity_usage)
+
+#Test Linear Regression Model
+
+LinRegTest <- LinRegMod %>% filter(Date_Hours>="2019-11-01")
+
+linearregression<-lm(Electricity_usage ~., data=LinRegTrain)
+
+
+
+
+ hist(linearregression$residuals)
+ plot(linearregression$residuals)
+
+ 
+ 
+ 
+prediction_lr<-LinRegTest %>%select('Lag_48','Lag_168')
+
+LinRegTest$linear_forecast<-predict(linearregression,prediction_lr)
+
+#MAPE value for Test Linear Regression 
+
+LinRegTest$MAPE<-abs(LinRegTest$linear_forecast-LinRegTest$Electricity_usage)/LinRegTest$Electricity_usage
+
+
+
+
+#PART C
+
+
+
+date<-epias_dataset$Date %>% as.character %>% as.Date(format="%d.%m.%Y")
+hours<-epias_dataset$Time%>% 
+  as.numeric()-1
+new_epiasdata<-data.table(Date=date, Time=hours, Electricity_usage=usage)
+f48 <-new_epiasdata %>% filter(Date<"2019-11-01") %>%mutate(Date=Date+2)
+f168 <-new_epiasdata %>% filter(Date<"2019-11-01") %>% mutate(Date=Date+7)
+
+LinRegSeason<-new_epiasdata%>% 
+  left_join(f48,by=c("Date","Time")) %>%
+  left_join(f168,by=c("Date","Time"))
+colnames(LinRegSeason)<-c("Date", "Time", "Electricity_usage","f48","f168")
+
+LinRegSeason_test <- LinRegSeason%>%filter(Date>="2019-11-01")
+
+LinRegSeason_train <- LinRegSeason%>%filter(Date<"2019-11-01")
+
+lr_set<-vector("list",24)
+linear_forecast_set<-vector("list",24)
+for(i in 1:24){
+  Electricity_usage_trainset_h<-LinRegSeason_train %>%
+    filter(Time==i-1) %>%
+    select('f48','f168',Electricity_usage)
+  lr_set[[i]]<-lm(Electricity_usage ~., data=Electricity_usage_trainset_h)
+  prediction_lr_h<-LinRegSeason_test %>%
+    filter(Time==i-1) %>%
+    select('f48','f168')
+  linear_forecast_set[[i]]<-predict(lr_set[[i]],prediction_lr_h)
+}
+LinRegSeason_test$forecast_hourly<-unlist(linear_forecast_set)
+LinRegSeason_test$MAPE<-abs(LinRegSeason_test$forecast_hourly-LinRegSeason_test$Electricity_usage)/LinRegSeason_test$Electricity_usage
+
+
+
+
+```
+
+
+
+```{r pressure, echo=FALSE}
+
+```
+
+
