@@ -1,22 +1,25 @@
 ---
-title: "IE582_HW3"
+title: "HW 3-PART A+B+C+D"
 author: "Dürdane Karabacak"
-date: "29 11 2019"
+date: "30 11 2019"
 output: html_document
 ---
+#HW3
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
-## R Markdown
-PART A-PART B and PART C
+```
+#PART A 
+
 
 ```{r cars}
 
-library(tidyverse)
-library(data.table)stringsAsFactors=FALSE
+stringsAsFactors=FALSE
+library(tinytex)
 library(glmnet)
+library(tidyverse)
+library(data.table)
+
 epias_dataset<-read.csv("C:/Users/DÜRDANE KARABACAK/Desktop/IE 582 HW/HW 3/Epiaşdata.csv") %>% as.data.table()
 colnames(epias_dataset)<-c("Date", "Time", "Electricity_usage")
 
@@ -52,6 +55,11 @@ colnames(test_data_Epias)<-c("Date_and_time", "Electricity_usage", "Naive Foreca
 head(test_data_Epias)
 
 
+
+```
+ #PART B
+
+```{r}
 #PART B
 #Forecast for 48 
 
@@ -70,7 +78,7 @@ colnames(f168)<-c("Date_Hours","Lag_168")
 LinRegMod<-new_epiasdata%>% left_join(f48,by="Date_Hours") %>%left_join(f168,by="Date_Hours")
 
 
-#Train Linear Regression model
+#training Linear Regression model
 
 LinRegTrain <- LinRegMod%>%
   filter(Date_Hours<"2019-11-01") %>%
@@ -99,13 +107,20 @@ LinRegTest$linear_forecast<-predict(linearregression,prediction_lr)
 
 LinRegTest$MAPE<-abs(LinRegTest$linear_forecast-LinRegTest$Electricity_usage)/LinRegTest$Electricity_usage
 
+```
 
+
+```{r}
+
+```
 
 
 #PART C
 
 
 
+```{r}
+#PART C
 date<-epias_dataset$Date %>% as.character %>% as.Date(format="%d.%m.%Y")
 hours<-epias_dataset$Time%>% 
   as.numeric()-1
@@ -113,9 +128,9 @@ new_epiasdata<-data.table(Date=date, Time=hours, Electricity_usage=usage)
 f48 <-new_epiasdata %>% filter(Date<"2019-11-01") %>%mutate(Date=Date+2)
 f168 <-new_epiasdata %>% filter(Date<"2019-11-01") %>% mutate(Date=Date+7)
 
-LinRegSeason<-new_epiasdata%>% 
-  left_join(f48,by=c("Date","Time")) %>%
-  left_join(f168,by=c("Date","Time"))
+# Construction of linear regression model with seasonality
+
+LinRegSeason<-new_epiasdata%>% left_join(f48,by=c("Date","Time")) %>% left_join(f168,by=c("Date","Time"))
 colnames(LinRegSeason)<-c("Date", "Time", "Electricity_usage","f48","f168")
 
 LinRegSeason_test <- LinRegSeason%>%filter(Date>="2019-11-01")
@@ -125,27 +140,77 @@ LinRegSeason_train <- LinRegSeason%>%filter(Date<"2019-11-01")
 lr_set<-vector("list",24)
 linear_forecast_set<-vector("list",24)
 for(i in 1:24){
-  Electricity_usage_trainset_h<-LinRegSeason_train %>%
-    filter(Time==i-1) %>%
-    select('f48','f168',Electricity_usage)
-  lr_set[[i]]<-lm(Electricity_usage ~., data=Electricity_usage_trainset_h)
-  prediction_lr_h<-LinRegSeason_test %>%
-    filter(Time==i-1) %>%
-    select('f48','f168')
-  linear_forecast_set[[i]]<-predict(lr_set[[i]],prediction_lr_h)
+  Electricity_usage_trainset_seasonal<-LinRegSeason_train %>% filter(Time==i-1) %>% select('f48','f168',Electricity_usage)
+  lr_set[[i]]<-lm(Electricity_usage ~., data=Electricity_usage_trainset_seasonal)
+  prediction_lr_seasonal<-LinRegSeason_test %>% filter(Time==i-1) %>% select('f48','f168')
+  linear_forecast_set[[i]]<-predict(lr_set[[i]],prediction_lr_seasonal)
 }
 LinRegSeason_test$forecast_hourly<-unlist(linear_forecast_set)
 LinRegSeason_test$MAPE<-abs(LinRegSeason_test$forecast_hourly-LinRegSeason_test$Electricity_usage)/LinRegSeason_test$Electricity_usage
 
 
+```
 
+```{r}
+
+```
+#PART D
+
+```{r }
+#PART D
+wide_format7<-spread(new_epiasdata,Time,Electricity_usage) %>% mutate(Date=Date+7)
+wide_format2<-spread(new_epiasdata,Time,Electricity_usage) %>% mutate(Date=Date+2) %>%left_join(wide_format7,by="Date")
+lasso_test_data <- new_epiasdata %>%filter(Date>="2019-11-01")  
+
+
+training<-vector("list")
+Lasso_results<-list()
+set.seed(1)
+
+#Gathering predictions for each hour 
+
+for(i in 1:24){
+  training[[i]]<-new_epiasdata %>% filter(Time==i-1) %>% filter(Date<"2019-11-01") %>%
+    left_join(wide_format2,by="Date") %>%
+    na.omit()
+  
+  Lasso_test<-new_epiasdata %>%
+    filter(Time==i-1) %>%
+    filter(Date>="2019-11-01") %>%
+    left_join(wide_format2,by="Date") %>%
+    na.omit()
+  
+  Lasso_test<-Lasso_test[4:51] %>% as.matrix
+  Electricity_usage_lasso<-training[[i]][3]
+  forecast_data<-as.matrix (training[[i]][c(4:51)])
+  glmm<-cv.glmnet(forecast_data,Electricity_usage_lasso$Electricity_usage,nfolds=10)
+  fit<-glmnet(forecast_data,Electricity_usage_lasso$Electricity_usage,lambda = glmm$lambda.min)
+  Lasso_results[[i]]<-predict(fit,Lasso_test)
+}
+
+lasso_test_data$prediction<-unlist(Lasso_results)
+lasso_test_data$MAPE<-abs(lasso_test_data$prediction-lasso_test_data$Electricity_usage)/lasso_test_data$Electricity_usage
+hist(lasso_test_data$MAPE,xlab="MAPE", main =  "Histogram of MAPE of Lasso Model")
+
+
+
+```
+```{r pressure}
 
 ```
 
 
 
-```{r pressure, echo=FALSE}
+
+
+
+
+
+
+
+
+
+```{r}
 
 ```
-
 
