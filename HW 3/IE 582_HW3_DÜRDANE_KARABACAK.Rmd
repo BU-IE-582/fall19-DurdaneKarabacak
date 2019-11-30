@@ -204,13 +204,25 @@ hist(lasso_test_data$MAPE,xlab="MAPE", main =  "Histogram of MAPE of Lasso Model
 
 
 
-
+#PART F
 
 
 
 
 
 ```{r}
+
+#PART f
+mape48=test_data_Epias$`MAPE(48)`
+mape168=test_data_Epias$`MAPE(168)`
+mape_lr_season=LinRegSeason_test$MAPE
+mape_lasso=lasso_test_data$MAPE
+mape_linear=LinRegTest$MAPE
+
+
+Model_Error <-data.frame( mape48,mape168,mape_linear,mape_lr_season,mape_lasso)
+colnames(Model_Error)<-c("MAPE with lag =48", "MAPE with lag= 168 ", "Linear Model Mape","Seasonal Linear Mape","Lasso Model Mape")
+boxplot(Model_Error)
 
 ```
 
