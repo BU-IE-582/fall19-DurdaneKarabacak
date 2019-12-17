@@ -1,0 +1,253 @@
+---
+title: "HW4-IE582"
+author: "Dürdane Karabacak"
+date: "17 12 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+
+library(data.table)
+library(anytime)
+library(dplyr)
+library(tidyverse)
+library(plyr)
+library(glmnet)
+library(lars)
+library(caTools)
+library(caret)
+```
+
+
+```{r }
+
+
+matches<-read.csv("C:/Users/DÜRDANE KARABACAK/Desktop/4.sınıf 1/IE 582 HW/HW 4/DATA/matches.csv")
+
+#PART 1- Preprocessing and  Feature Engineering 
+Dates<- as.Date(anytime(matches$epoch))
+Times<-anytime(matches$epoch)
+Hours <- format(as.POSIXct(strptime(Times,"%Y-%m-%d %H:%M",tz="")) ,format = "%H:%M")
+matches<-cbind(matches,Dates)
+matches<-cbind(matches,Hours)
+matches<-data.table(matches)
+matches<-matches[match_status=="Finished"]
+matches[,"sum_goals"]<- (matches$match_hometeam_score+matches$match_awayteam_score)
+
+Mydata <- matches %>% 
+  select(match_id,epoch,match_awayteam_id,match_hometeam_id,match_hometeam_score,match_awayteam_score,Dates,Hours,sum_goals)
+
+#Iwill use after 2017-12-01 training because i will need enough data which is before hand to get goals at last games
+training<-Mydata[Dates>="2017-12-01"]
+
+
+
+#FEATURE 2:Averages of the goals of HOME TEAM of the last 10 matches
+
+sum<-vector()
+
+#For Home team last 10 games goals counting and average
+
+for (y in 1:length(training$match_id)) {
+    #hometeam
+    sum[y]=0
+    team<- training[y,4]
+    team<-as.numeric(team)
+    time<- training[y,2]
+    time<-as.numeric(time)
+    dt=Mydata %>% filter( (match_hometeam_id == team | match_awayteam_id == team), epoch<= time  )
+    dt<-setDT(dt)[order(epoch),tail(.SD,10)]
+    for(j in 1: nrow(dt)){
+      if(dt[j,3]==team){
+        
+        sum[y]=(sum[y]+dt[j,6])
+      }
+      else sum[y]=sum[y]
+      
+      if(dt[j,4]==team){
+        sum[y]=(sum[y]+dt[j,5])
+      }
+      else sum[y]=sum[y]
+      #print(j )
+      #print(sum)
+    }
+ # print(y)
+}
+training$last10_homesum<-sum
+training$last10_homesum<-as.numeric(training$last10_homesum)
+training[,'average_last10_homegoals']<- training$last10_homesum /10
+
+
+#FEATURE 2: Averages of the goals of AWAY TEAM of the last 10 matches
+
+#For Away team last 10 games goals counting and average
+
+sum_away<-vector()
+for (y in 1:length(training$match_id)) {
+  sum_away[y]=0
+  team<- training[y,3]
+  team<-as.numeric(team)
+  time<- training[y,2]
+  time<-as.numeric(time)
+  dt=Mydata %>% filter( (match_hometeam_id == team | match_awayteam_id == team), epoch<= time  )
+  dt<-setDT(dt)[order(epoch),tail(.SD,10)]
+  for(j in 1: nrow(dt)){
+    if(dt[j,3]==team){
+      
+      sum_away[y]=(sum_away[y]+dt[j,6])
+    }
+    else sum_away[y]=sum_away[y]
+    
+    if(dt[j,4]==team){
+      sum_away[y]=(sum_away[y]+dt[j,5])
+    }
+    else sum_away[y]=sum_away[y]
+    #print(j )
+    #print(sum_away)
+  }
+  #print(y)
+}
+training$last10_sum_away<-sum_away
+training$last10_sum_away<-as.numeric(training$last10_sum_away)
+training[,'average_last10_sum_away']<- training$last10_sum_away /10
+ 
+
+#Adding Class Info to the data table
+
+  training[,'Class']<-vector()
+  for (i in 1:length(training$match_id)) {
+    if(training[i,'sum_goals']>2.5){
+    training[i,"Class"]<-0
+    }
+    else training[i,"Class"]<-1
+}
+training$Class<- as.numeric(training$Class)
+
+# PART 2.1- CLASSIFICATION PROBLEM : Predicting the total goals will be higher than 2.5 or not
+#Class 1: total goals>2.5    Class 2: total goals<2.5
+
+MainTable<- training %>% select(average_last10_homegoals,average_last10_sum_away,Class)
+MainTable$average_last10_homegoals<-scale(MainTable$average_last10_homegoals)
+MainTable$average_last10_sum_away<-scale(MainTable$average_last10_sum_away)
+set.seed(47)
+indices.test<- sample(x=nrow(MainTable),size=500,replace = FALSE)
+data.test<-MainTable[indices.test,]
+data.training<-MainTable[-indices.test,]
+names(data.training)[1]<-"Home Avg Goals"
+names(data.training)[2]<-"Away Avg Goals"
+names(data.test)[1]<-"Home Avg Goals"
+names(data.test)[2]<-"Away Avg Goals"
+
+
+# Classification Approach 1: Penalized Regression Analysis
+
+#to get best lambda value for PRA model
+data.training$Class<-as.numeric(data.training$Class)
+cv<- cv.glmnet(x=as.matrix(data.training[,1:2]),y=as.matrix(data.training[,3]),alpha = 1)
+cv$lambda.min
+
+PRA_classifier<- glmnet(x=as.matrix(data.training[,1:2]),y=as.matrix(data.training[,3]),alpha = 1,lambda =cv$lambda.min.,family = "binomial")
+coef(PRA_classifier)
+
+# Make predictions on the test data
+probabilities<-predict(object =PRA_classifier,newx = as.matrix(data.test[,1:2]))
+predictions_PRA<-ifelse(probabilities > 0.5, "0", "1")
+
+#summarize accuracy
+mean(predictions_PRA == data.test[,3])
+
+
+
+# Classification Approach 2: Decision Tree Approach
+plot(data.training$`Home Avg Goals`,data.training$`Away Avg Goals`)
+
+library(rpart)
+
+data.training$Class<-as.factor(data.training$Class)
+DT_classifier<- rpart(formula = data.training$Class~., data = data.training[,1:2],control = rpart.control(minbucket =50, cp=0,09))
+#Predicting the test set results
+info<-data.test[,-3]
+predictions_DT<- predict(DT_classifier,newdata = info, type = 'class')
+# Making the Confusion Matrix
+confusionmatrix<- table(data.test$Class, predictions_DT)
+confusionmatrix
+plot(DT_classifier)
+#text(DT_classifier)
+
+
+
+# Classification Approach 3: Random Forest
+library(randomForest)
+RF_classifier= randomForest(x=data.training[,-3],y= data.training$Class,ntree = 10,nodesize = 5)
+#Predicting the test set results
+predictions_RF<- predict(DT_classifier,newdata = data.test[,1:2], type = 'class')
+# Making the Confusion Matrix
+confusionmatrix_RF<- table(data.test$Class, predictions_RF)
+confusionmatrix
+plot(RF_classifier)
+
+' 
+# Classification Approach 4: Stockhastic Gradient Boosting
+library(gbm)
+
+classifier_SGB<- gbm( formula=Class~.,data = data.training ,distribution ="bernoulli",n.trees = 15, shrinkage = 0,01, interaction.depth = 3, n.minobsinnode = 10 )
+' 
+
+# PART 2.2 REGRESSION PROBLEM:
+Regression_Table<- training %>% select(average_last10_homegoals,average_last10_sum_away,sum_goals)
+Regression_Table$average_last10_homegoals<-scale(Regression_Table$average_last10_homegoals)
+Regression_Table$average_last10_sum_away<-scale(Regression_Table$average_last10_sum_away)
+
+set.seed(123)
+indices.test<- sample(x=nrow(MainTable),size=500,replace = FALSE)
+regression.test<-Regression_Table[indices.test,]
+regression.training<-Regression_Table[-indices.test,]
+instances<- as.matrix(regression.training[,1:2])
+response<-as.matrix(regression.training[,3])
+instances.test<- as.matrix(regression.test[,1:2])
+response.test<-as.matrix(regression.test[,3])
+
+###Penalized Regression Approach for Regression(PRA)
+
+#Model Fitting
+
+REG_PRA<-glmnet(instances,response,alpha = 1,lambda = 0.03)
+coef(REG_PRA)
+# Making Predictions on the test data
+Predictions.REG.PRA<-predict(REG_PRA,newx = instances.test )
+data.frame( RMSE<- RMSE(Predictions.REG.PRA,response.test), Rsquare<- R2(Predictions.REG.PRA,response.test))
+
+#cv<-cv.glmnet(instances,response,alpha=1)
+#cv$lambda.min
+
+#Decision Trees Regression
+response<-as.factor(response)
+REG_DT<-rpart(formula=regression.training$sum_goals~.,data = regression.training,method = "anova",control =  rpart.control(minbucket =50, cp=0,09) )
+#Predicting the test set results
+predictions.REG.DT<-predict(REG_DT,newdata= regression.test[,-3])
+cm_reg_DT<- table(regression.test$sum_goals, predictions.REG.DT)
+cm_reg_DT
+plot(REG_DT)
+#text(REG_DT)
+
+
+# Random Forest Regression
+
+REG_RF= randomForest(x=regression.training[,-3],y= regression.training$sum_goals,ntree = 1000,nodesize = 5)
+#Predicting the test set results
+predictions.REG.RF<- predict(REG_RF,newdata =regression.test[,1:2])
+REG_RF
+
+
+
+
+```
+
+
+```{r pressure, echo=FALSE}
+
+
+```
+
