@@ -30,8 +30,9 @@ Dürdane Karabacak/ IE 582 HW Repository
   
   Decision Tree Approach Link:https://github.com/BU-IE-582/fall19-DurdaneKarabacak/blob/master/Project/IE582-PROJECT-Decision%20Tree.Rmd
   
-  Other Approaches Link:
+  Gradient Boosting and Random Forest:
+  https://colab.research.google.com/drive/1ZZprFFkD3Jt3PaC6UHurVn3aeWsbYp38#scrollTo=BWQhhnwRY63W&forceEdit=true&sandboxMode=true
   
-  Project Report:
+  Project Report:https://github.com/BU-IE-582/fall19-DurdaneKarabacak/blob/master/Project/IE_582_Final_Report%20(2).ipynb
   
   
