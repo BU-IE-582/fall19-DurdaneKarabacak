@@ -3,7 +3,11 @@
 
 ##HW 1
 To see HW 1 description, click [here](HW 1/IE582_Fall2019_Homework1.pdf)
-HW 1 HTML Files is [here](HW 1/HW1)
+###HW 1 HTML Files 
+[Task1](HW 1/HW1/HW-1-TASK-1.html)
+[Task2](HW 1/HW1/HW-1-TASK-2.html)
+[Task3.1](HW 1/HW1/HW-1-TASK-3-CASE-1.html)
+[Task3.2](HW 1/HW1/HW-1-TASK-3-CASE-2.html)
 
 ##HW 2
 To see HW 2 description, click [here](HW 2/IE582_Fall2019_Homework2.pdf)
